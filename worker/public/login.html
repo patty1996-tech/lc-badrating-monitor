@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>LiveChat Bad-Rating Monitor</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<style>
+*{box-sizing:border-box}
+body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;font:14px/1.5 system-ui,Segoe UI,Roboto,Arial;color:#e7eefc;
+ background:radial-gradient(1200px 600px at 20% -10%,#1b2b52,transparent 60%),linear-gradient(180deg,#0b1426,#0a1120)}
+.box{width:340px;padding:26px;border-radius:16px;background:linear-gradient(160deg,rgba(59,130,246,.14),rgba(139,92,246,.06)),#111c33;border:1px solid #2b3f63;box-shadow:0 30px 60px -30px #000}
+h1{font-size:17px;margin:0 0 4px}p.sub{color:#8ba0c4;margin:0 0 16px;font-size:12.5px}
+label{display:block;color:#8ba0c4;font-size:12px;margin:10px 0 4px}
+input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #22304d;background:#0b1426;color:#e7eefc}
+button{width:100%;margin-top:16px;padding:11px;border:0;border-radius:10px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,#3b82f6,#06b6d4)}
+.err{color:#ff5d6c;font-size:12.5px;margin-top:10px;min-height:16px}
+</style></head><body>
+<form class="box" onsubmit="return doLogin(event)">
+<h1>LiveChat Bad-Rating Monitor</h1><p class="sub">Sign in to continue</p>
+<label>Username</label><input id="u" autocomplete="username" autofocus/>
+<label>Password</label><input id="p" type="password" autocomplete="current-password"/>
+<button type="submit">Sign in</button><div class="err" id="err"></div>
+</form>
+<script>
+async function doLogin(e){e.preventDefault();document.getElementById('err').textContent='';
+ const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u.value,pass:p.value})});
+ if(r.ok){location.href='/';}else{const d=await r.json().catch(()=>({}));document.getElementById('err').textContent=d.error||'Login failed';}
+ return false;}
+</script></body></html>
