@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LiveChat Bad-Rating Monitor</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<style>
+  :root{--bg:#0f172a;--card:#111c33;--line:#22304d;--txt:#e7eefc;--mut:#8ba0c4;--accent:#3b82f6;--red:#3a1d24;--redb:#ff5d6c;--green:#34d399}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 system-ui,Segoe UI,Roboto,Arial;color:var(--txt);
+    background:radial-gradient(1200px 600px at 15% -10%,#1b2b52 0%,transparent 60%),
+               radial-gradient(1000px 500px at 100% 0%,#0f2f45 0%,transparent 55%),
+               linear-gradient(180deg,#0b1426,#0f172a 40%,#0a1120)}
+  header{position:sticky;top:0;z-index:5;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    background:linear-gradient(90deg,rgba(59,130,246,.16),rgba(14,165,233,.08) 45%,rgba(16,185,129,.10));
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .q{padding:6px 10px;font-size:12px}
+  .cal-wrap{position:relative}
+  .datebtn{display:flex;align-items:center;gap:6px}
+  .cal{position:absolute;top:44px;left:0;z-index:30;width:280px;padding:10px;border-radius:12px;
+    background:#0e1a30;border:1px solid var(--line);box-shadow:0 24px 50px -24px #000}
+  .cal.hidden{display:none}
+  .cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cal-hd button{padding:2px 12px;font-size:15px}
+  .cal-hd span{font-weight:600}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+  .cal-grid .dow{color:var(--mut);font-size:11px;padding:2px 0}
+  .cal-grid .day{padding:6px 0;border-radius:8px;cursor:pointer}
+  .cal-grid .day:hover{background:#1c2c4a}
+  .cal-grid .day.sel{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:700}
+  .cal-grid .day.today{border:1px solid #34d399}
+  h1{font-size:15px;margin:0 10px 0 0}
+  input,select{background:#0b1426;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  #search{min-width:220px}
+  .chk{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12.5px;white-space:nowrap}
+  .chk input{width:16px;height:16px}
+  button{background:#1c2c4a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:linear-gradient(135deg,#3b82f6,#06b6d4);border-color:#3b82f6;color:#fff;font-weight:600;box-shadow:0 8px 22px -10px #3b82f6}
+  button.primary:hover{filter:brightness(1.08)}
+  #status{color:var(--mut);margin-left:auto}
+  .wrap{padding:14px 16px 60px}
+  .cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+  .card{background:linear-gradient(160deg,rgba(59,130,246,.14),rgba(139,92,246,.06)),var(--card);
+    border:1px solid #2b3f63;border-radius:14px;padding:12px 16px;min-width:130px;box-shadow:0 12px 30px -22px #000;transition:.15s}
+  .card:hover{border-color:#3b82f6;transform:translateY(-1px)}
+  .card .n{font-size:22px;font-weight:800;background:linear-gradient(135deg,#93c5fd,#a7f3d0);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .card .l{color:var(--mut);font-size:12px}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+  .tab{padding:7px 12px;border:1px solid var(--line);border-radius:999px;cursor:pointer;background:#0b1426}
+  .tab.active{background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-color:#6366f1;color:#fff;font-weight:600;box-shadow:0 8px 20px -10px #6366f1}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:12.5px}
+  th{background:linear-gradient(180deg,#12203c,#0d1729);color:#a9bde0}
+  tr.shared td{background:var(--red)}
+  tr:hover td{background:#162443}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+  .badge.bad{background:#3a1d24;color:var(--redb);border-color:#5b2630}
+  .badge.good{background:#123024;color:var(--green);border-color:#1d4d37}
+  .badge.un{background:#242b3a;color:var(--mut)}
+  a{color:#7ab7ff;text-decoration:none;cursor:pointer}a:hover{text-decoration:underline}
+  a.ext{color:#34d399;font-weight:700;margin-left:6px}
+  .muted{color:var(--mut)}  .empty{padding:30px;text-align:center;color:var(--mut)}
+  .note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+  .note table{width:auto;background:transparent;border:none}
+  .note td{padding:4px 12px 4px 0;border:none}
+  .modal{position:fixed;inset:0;background:rgba(3,8,18,.72);display:none;align-items:flex-start;justify-content:center;z-index:20;padding:24px;overflow:auto}
+  .modal.on{display:flex}
+  .sheet{background:var(--card);border:1px solid var(--line);border-radius:14px;width:min(900px,100%);padding:0}
+  .sheet .hd{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .sheet .bd{padding:16px 18px}
+  .rev{background:#0b1426;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .rev .kv{margin:4px 0}.rev .k{color:var(--mut);display:inline-block;min-width:120px}
+  .sec-h{margin:12px 0 5px;font-weight:700;color:#93c5fd;border-bottom:1px solid var(--line);padding-bottom:3px}
+  .sec-h:first-child{margin-top:0}
+  .tr{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .msg{padding:8px 12px;border-bottom:1px solid #1a263f;display:flex;gap:10px}
+  .msg .who{min-width:120px;font-weight:600}
+  .msg.customer .who{color:#fca5a5}.msg.agent .who{color:#93c5fd}.msg.bot .who{color:#a7f3d0}
+  .msg .tm{color:var(--mut);font-size:11px;min-width:64px}
+  .close{margin-left:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1><img src="/favicon.svg" width="22" height="22" style="vertical-align:-4px;margin-right:6px">LiveChat Bad-Rating Monitor</h1>
+  <div class="cal-wrap">
+    <button id="dateBtn" class="datebtn">📅 <span id="dateLabel">—</span></button>
+    <div id="cal" class="cal hidden">
+      <div class="cal-hd"><button id="calPrev">‹</button><span id="calTitle"></span><button id="calNext">›</button></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+  <button class="q" id="qy" title="Yesterday">◀ Yest.</button>
+  <button class="q" id="qt" title="Today">Today ▶</button>
+  <select id="group"><option value="">All groups</option></select>
+  <select id="type">
+    <option value="">All issue types</option>
+    <option>Deposit</option><option>Withdrawal</option><option>OTP</option>
+    <option>Game</option><option>Promotions</option><option>Emotional</option>
+    <option>Account</option><option>Sign up</option><option>Other</option>
+  </select>
+  <label class="chk"><input type="checkbox" id="ratedonly" checked> Only rated</label>
+  <input id="search" placeholder="🔎 username or chat ID" />
+  <button id="fetch" class="primary">Fetch / Refresh</button>
+  <button id="dl">⬇ Download</button>
+  <button id="logout" class="q">Logout</button>
+  <span id="status">–</span>
+</header>
+<div class="wrap">
+  <div class="cards" id="cards"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="summary"></div>
+  <div id="tablewrap"><div class="empty">Pick a date and click “Fetch / Refresh”.</div></div>
+</div>
+
+<div class="modal" id="modal"><div class="sheet">
+  <div class="hd"><b id="m_title">Chat</b><a id="m_open" target="_blank">open in LiveChat ↗</a><button class="close" onclick="closeChat()">✕ Close</button></div>
+  <div class="bd" id="m_body">Loading…</div>
+</div></div>
+
+<script>
+const TABS = [["bad","Bad (all)"],["bad_agent","Bad (agent)"],["bad_bot","Bad (bot only)"],
+  ["good","Good ratings"],["unrated","Unrated"],
+  ["rated_commented","Rated & commented"],["bad_commented","Bad & commented"],
+  ["good_commented","Good & commented"],["all","All chats"]];
+let view="bad", poll=null, curDate="", fetching=false, lastStatus=null, lastData=null, SEARCH="";
+let SEL_DATE=null, calMonth=null;
+const $=s=>document.querySelector(s);
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const lcLink=id=>`https://my.livechatinc.com/archives/${id}?query=${id}`;
+(function(){const d=new Date();d.setDate(d.getDate()-1);SEL_DATE=ymd(d);document.getElementById('dateLabel').textContent=SEL_DATE;})();
+const setStatus=t=>$("#status").textContent=t;
+function setDate(v){SEL_DATE=v;document.getElementById('dateLabel').textContent=v;const d=new Date(v+'T00:00:00');calMonth=new Date(d.getFullYear(),d.getMonth(),1);}
+function renderCal(){
+  const y=calMonth.getFullYear(),m=calMonth.getMonth();
+  $("#calTitle").textContent=calMonth.toLocaleString('en',{month:'long',year:'numeric'});
+  const startDow=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate(), today=ymd(new Date());
+  let html=['S','M','T','W','T','F','S'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let i=0;i<startDow;i++)html+='<div></div>';
+  for(let d=1;d<=days;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    html+=`<div class="day${ds===SEL_DATE?' sel':''}${ds===today?' today':''}" data-d="${ds}">${d}</div>`;
+  }
+  $("#calGrid").innerHTML=html;
+  document.querySelectorAll('#calGrid .day').forEach(el=>el.onclick=()=>{setDate(el.dataset.d);toggleCal(false);loadReport();});
+}
+function toggleCal(show){const c=$("#cal");if(show){if(!calMonth)setDate(SEL_DATE);renderCal();c.classList.remove('hidden');}else c.classList.add('hidden');}
+document.addEventListener('click',e=>{if(!e.target.closest('.cal-wrap')&&!e.target.closest('#cal'))toggleCal(false);});
+
+async function loadGroups(){
+  const g=await(await fetch('/api/groups')).json();
+  const sel=$("#group");
+  Object.entries(g).sort((a,b)=>(a[1]||'').localeCompare(b[1]||'')).forEach(([id,name])=>{
+    const o=document.createElement('option');o.value=id;o.textContent=`${name} (${id})`;sel.appendChild(o);});
+}
+async function fetchData(){
+  const date=SEL_DATE, g=$("#group").value;
+  const gname = g ? $("#group").selectedOptions[0].textContent : "All groups";
+  setStatus("starting…");fetching=true;
+  $("#tablewrap").innerHTML='<div class="empty">Fetching '+gname+' for '+date+'… please wait.</div>';
+  $("#cards").innerHTML='';$("#tabs").innerHTML='';
+  await fetch(`/api/fetch?date=${date}${g?`&group=${g}`:''}&rated=${$("#ratedonly").checked?"1":"0"}`);
+  clearInterval(poll);
+  poll=setInterval(async()=>{
+    const s=await(await fetch('/api/status')).json();lastStatus=s;
+    if(s.running){
+      setStatus(`fetching ${s.date}… page ${s.page} (${s.chats} chats)`);
+      $("#tablewrap").innerHTML='<div class="empty">Fetching '+s.date+'… page '+s.page+' ('+s.chats+' chats). The table will appear when it finishes.</div>';
+    } else {
+      clearInterval(poll);fetching=false;
+      setStatus(s.error?("error: "+s.error):"loaded");
+      loadReport();
+    }
+  },1000);
+}
+function q(){
+  const p=new URLSearchParams();p.set("date",SEL_DATE);p.set("view",view);
+  if($("#group").value)p.set("group",$("#group").value);
+  if($("#type").value)p.set("type",$("#type").value);
+  p.set("rated",$("#ratedonly").checked?"1":"0");
+  return p.toString();
+}
+async function loadReport(){
+  const r=await fetch('/api/report?'+q());
+  if(r.status===404){
+    $("#cards").innerHTML=''; $("#summary").innerHTML='';
+    if(fetching){
+      $("#tablewrap").innerHTML='<div class="empty">Fetching… the table will appear automatically when done.</div>';
+    } else {
+      $("#tablewrap").innerHTML='<div class="empty">No data cached — auto-fetching now…</div>';
+      fetchData();
+    }
+    return;
+  }
+  const d=await r.json();curDate=SEL_DATE;lastData=d;
+  renderCards(d.counts);renderTabs(d.counts);renderSummary(d.counts);renderTable(d);
+}
+function renderSummary(c){
+  const el=$("#summary");
+  if(view==='unrated' && c && c.unrated_reasons){
+    const rows=Object.entries(c.unrated_reasons).sort((a,b)=>b[1]-a[1]);
+    const tot=rows.reduce((s,[,v])=>s+v,0)||1;
+    el.innerHTML='<div class="note"><b>Why these chats are unrated</b><table>'+rows.map(([k,v])=>`<tr><td><b>${v}</b></td><td>${(v/tot*100).toFixed(1)}%</td><td>${k}</td></tr>`).join('')+'</table></div>';
+  } else el.innerHTML='';
+}
+function renderCards(c){if(!c)return;
+  $("#cards").innerHTML=[["Total",c.total],["Bad",c.bad],["Bad (agent)",c.bad_agent],["Bad (bot only)",c.bad_bot],
+    ["Good",c.good],["Unrated",c.unrated],["Bad & commented",c.bad_commented],["Good & commented",c.good_commented]]
+    .map(([l,n])=>`<div class="card"><div class="n">${n??0}</div><div class="l">${l}</div></div>`).join('');}
+function renderTabs(c){
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<div class="tab ${k===view?'active':''}" data-k="${k}">${l}</div>`).join('');
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{view=t.dataset.k;loadReport();});}
+const rb=r=>r==='bad'?'<span class="badge bad">BAD</span>':r==='good'?'<span class="badge good">GOOD</span>':'<span class="badge un">—</span>';
+
+function renderTable(d){
+  const perAgent=(view==='bad'||view==='bad_agent');
+  const rows=d.rows.filter(r=>!SEARCH || (r.customer||'').toLowerCase().includes(SEARCH) || (r.chat_id||'').toLowerCase().includes(SEARCH));
+  if(!rows.length){$("#tablewrap").innerHTML='<div class="empty">'+(SEARCH?'No match for “'+SEARCH+'”.':'No rows.')+'</div>';return;}
+  const head=`<tr><th>Time</th><th>Group</th><th>ID</th><th>Chat</th><th>Customer</th><th>Rating</th><th>Issue</th><th>${perAgent?'Agent':'Agents'}</th><th>Bot</th><th>Reason / Class</th><th>Problem</th></tr>`;
+  const body=rows.map(r=>{
+    const agentNames=r.agents.map(a=>a.name).filter(Boolean).join(', ');
+    const share=r.n_agents>1?` <a class="badge bad" style="cursor:pointer" title="Agents involved: ${agentNames}" onclick="openChat('${r.chat_id}')">SHARED ×${r.n_agents} ↗</a>`:'';
+    const agent=perAgent?(r.agent_name||''):(r.agents.map(a=>a.name).join(', '));
+    const bots=(r.bots||[]).join(', ')||(r.n_agents===0?'<span class="badge bad">BOT ONLY</span>':'');
+    return `<tr class="${share?'shared':''}">
+      <td>${r.time}</td><td>${r.group_name||''}</td><td>${r.group_id??''}</td>
+      <td><a onclick="openChat('${r.chat_id}')">${r.chat_id}</a><a class="ext" href="${lcLink(r.chat_id)}" target="_blank" title="Open in LiveChat">↗</a></td>
+      <td>${r.customer}</td><td>${rb(r.rating)} ${r.has_comment?'💬':''}</td>
+      <td>${r.issue_type||''}</td><td>${agent}${share}</td><td>${bots}</td>
+      <td>${r.rating==='unrated'?(r.unrated_reason||''):(r.classification||[]).join(', ')}</td><td class="muted">${(r.problem||'').slice(0,120)}</td></tr>`;}).join('');
+  $("#tablewrap").innerHTML=`<table>${head}${body}</table>`;
+}
+
+async function openChat(id){
+  $("#modal").classList.add('on');$("#m_title").textContent="Chat "+id;$("#m_body").innerHTML="Loading…";
+  const r=await(await fetch('/api/chat?'+q()+'&id='+id)).json();
+  if(r.error){$("#m_body").innerHTML='<div class="empty">This chat is not in the cached report for the selected day/group. Click <b>Fetch / Refresh</b> and try again.</div>';return;}
+  $("#m_title").textContent=`Chat ${r.chat_id} · ${r.group_name} (${r.group_id}) · ${r.time}`;
+  $("#m_open").href=lcLink(r.chat_id);
+  const rev=`<div class="rev">
+    <div class="sec-h">📝 Chat Summary</div>
+    <div class="kv"><span class="k">Customer</span> <b>${r.customer}</b></div>
+    <div class="kv"><span class="k">Group</span> ${r.group_name||'—'} (${r.group_id??'—'})</div>
+    <div class="kv"><span class="k">Time</span> ${r.time||'—'}</div>
+    <div class="kv"><span class="k">Rating</span> ${rb(r.rating)} ${r.rating_label||''} ${r.has_comment?'💬':''}</div>
+    <div class="kv"><span class="k">Issue Type</span> <b>${r.issue_type||'—'}</b>${r.concern?` <span class="muted">(form: ${r.concern})</span>`:''}</div>
+    <div class="kv"><span class="k">Agents</span> ${r.agents.map(a=>a.name).join(', ')||'—'} ${r.n_agents>1?`<span class="badge bad">SHARED ×${r.n_agents}</span>`:''}</div>
+    <div class="kv"><span class="k">Bot(s)</span> ${(r.bots||[]).join(', ')||(r.n_agents===0?'<span class="badge bad">BOT ONLY</span>':'—')}</div>
+    <div class="sec-h">🔎 Chat Review</div>
+    <div class="kv"><span class="k">Problem</span> ${r.problem||'—'}</div>
+    <div class="kv"><span class="k">Error / Root cause</span> ${r.error||'—'}</div>
+    <div class="kv"><span class="k">Classification</span> ${(r.classification||[]).join(', ')||(r.rating==='unrated'?('unrated: '+(r.unrated_reason||'')):'—')}</div>
+    <div class="sec-h">✅ Chat Solution</div>
+    <div class="kv">${r.suggestion||'—'}</div>
+  </div>`;
+  const tr=(r.transcript||[]).map(m=>`<div class="msg ${m.role}"><span class="who">${m.name||m.role}</span><span class="tm">${m.t||''}</span><span>${(m.text||'').replace(/</g,'&lt;')}</span></div>`).join('');
+  $("#m_body").innerHTML=rev+`<div class="tr">${tr||'<div class="empty">No messages</div>'}</div>`;
+}
+function closeChat(){$("#modal").classList.remove('on');}
+$("#fetch").onclick=fetchData;
+$("#dl").onclick=()=>window.location='/api/download?'+q();
+$("#group").onchange=loadReport;$("#type").onchange=loadReport;
+$("#ratedonly").onchange=loadReport;
+$("#dateBtn").onclick=e=>{e.stopPropagation();toggleCal($("#cal").classList.contains('hidden'));};
+$("#calPrev").onclick=e=>{e.stopPropagation();calMonth.setMonth(calMonth.getMonth()-1);renderCal();};
+$("#calNext").onclick=e=>{e.stopPropagation();calMonth.setMonth(calMonth.getMonth()+1);renderCal();};
+$("#qy").onclick=()=>{const d=new Date();d.setDate(d.getDate()-1);setDate(ymd(d));loadReport();};
+$("#qt").onclick=()=>{const d=new Date();setDate(ymd(d));loadReport();};
+$("#search").oninput=e=>{SEARCH=e.target.value.trim().toLowerCase();if(lastData)renderTable(lastData);};
+$("#logout").onclick=async()=>{try{await fetch('/api/logout',{method:'POST'});}catch(e){}location.href='/';};
+loadGroups().then(loadReport);
+</script>
+</body>
+</html>
