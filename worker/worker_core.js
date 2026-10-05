@@ -190,7 +190,9 @@ async function handleReport(url, env){
   }
   const groups = await getGroups(env);
   const rows = await fetchGroupDay(env, date, group, ratedOnly, groups);
-  if(env.LC_KV) await env.LC_KV.put(key, JSON.stringify(rows), { expirationTtl: 259200 });
+  const today = new Date(Date.now()+PH*3600000).toISOString().slice(0,10);
+  const ttl = (date===today) ? 120 : 259200;
+  if(env.LC_KV) await env.LC_KV.put(key, JSON.stringify(rows), { expirationTtl: ttl });
   return json({date, group, rows, cached:false});
 }
 
